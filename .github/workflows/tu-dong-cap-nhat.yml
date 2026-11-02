@@ -138,7 +138,7 @@ jobs:
           set -euo pipefail
           ./gradlew :mapvoice:testReleaseUnitTest --console=plain
           (cd keepalive && ./../gradlew assembleRelease --console=plain)
-          cp keepalive/build/outputs/apk/release/keepalive-release.apk SonyKeepAlive.apk
+          cp keepalive/build/outputs/apk/release/SonyKeepAlive-release.apk SonyKeepAlive.apk
           ./gradlew :app:testReleaseUnitTest :app:assembleRelease --console=plain
 
       - name: Commit và push thay đổi lên chuhieu173/vgs-cleantv (nếu có code mới)

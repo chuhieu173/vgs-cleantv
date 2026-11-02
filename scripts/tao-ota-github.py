@@ -41,7 +41,7 @@ def main():
     shutil.copy2(apk_src, dist / apk_name)
     shutil.copy2(apk_src, dist / "CleanTV.apk")
 
-    keepalive_src = ROOT / "keepalive/build/outputs/apk/release/keepalive-release.apk"
+    keepalive_src = ROOT / "keepalive/build/outputs/apk/release/SonyKeepAlive-release.apk"
     if not keepalive_src.is_file():
         keepalive_src = ROOT / "SonyKeepAlive.apk"
     if keepalive_src.is_file():
