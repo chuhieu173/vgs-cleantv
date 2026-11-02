@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 rootProject.name = "tv-sach"
 include(":app")
 include(":khoa")
+include(":mapvoice")

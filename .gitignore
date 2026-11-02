@@ -1,6 +1,10 @@
 .gradle/
+.kotlin/
 build/
 app/build/
+keepalive/build/
+mapvoice/build/
+khoa/build/
 local.properties
 upstream/
 *.keystore
@@ -18,3 +22,5 @@ og/tv-sau.png
 launcher-ky.keystore
 .env.cloudflare
 .env*
+tivikit/
+dist/

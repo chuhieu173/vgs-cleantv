@@ -45,6 +45,7 @@ object KichBanKhoiPhuc {
         }
         chu(t("Gỡ Khoá trẻ em nếu có cài (chưa cài thì báo lỗi, không sao)", "Remove the Kids lock if installed (an error here is fine)"))
         dong += "adb uninstall $PKG_KHOA"
+        dong += "adb uninstall ${MapVoice.GOI}"
         dong += "adb shell input keyevent KEYCODE_HOME"
         chu(t("Xong. Nên tắt Gỡ lỗi USB trên tivi.", "Done. Turn USB debugging off on the TV."))
         return dong.joinToString("\r\n", postfix = "\r\n")

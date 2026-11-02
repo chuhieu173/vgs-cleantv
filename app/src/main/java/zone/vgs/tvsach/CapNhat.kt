@@ -14,7 +14,8 @@ import java.net.URL
  *  - bản app mới: tải APK rồi mở hộp cài của Android (người dùng bấm Cài đặt).
  */
 object CapNhat {
-    const val GOC = "https://cleantv.alexvgs.tech"
+    const val KHO = "chuhieu173/vgs-cleantv"
+    const val GOC = "https://github.com/$KHO/releases/latest/download"
 
     data class BanMoi(val versionCode: Int, val versionName: String, val apk: String, val ghiChu: String)
 
@@ -63,7 +64,8 @@ object CapNhat {
                 val phienBan = o.getString("phienBan")
                 if (prefs.getString(ten, "") == phienBan && fileDuLieu(ctx, ten).isFile) continue
                 runCatching {
-                    val bytes = tai(GOC + o.getString("url"), 60)
+                    val u = o.getString("url").let { if (it.startsWith("http")) it else "$GOC/${it.removePrefix("/").removePrefix("ota/")}" }
+                    val bytes = tai(u, 60)
                     if (bytes.size.toLong() != o.optLong("co", bytes.size.toLong())) error("Sai cỡ $ten")
                     val f = fileDuLieu(ctx, ten).apply { parentFile?.mkdirs() }
                     val tam = File(f.path + ".tam")
@@ -83,7 +85,7 @@ object CapNhat {
         val app = j.optJSONObject("app") ?: return null
         val code = app.optInt("versionCode")
         return if (code > BuildConfig.VERSION_CODE)
-            BanMoi(code, app.optString("versionName"), app.getString("apk").let { if (it.startsWith("http")) it else GOC + it },
+            BanMoi(code, app.optString("versionName"), app.getString("apk").let { if (it.startsWith("http")) it else "$GOC/${it.removePrefix("/")}" },
                 t(app.optString("ghiChu"), app.optString("ghiChuEn").ifBlank { app.optString("ghiChu") }))
         else null
     }

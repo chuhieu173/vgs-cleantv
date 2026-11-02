@@ -1,0 +1,177 @@
+name: Tự động đồng bộ CleanTV + Map Voice & Phát hành OTA
+
+on:
+  schedule:
+    # Chạy định kỳ mỗi 12 giờ (07:00 và 19:00 giờ Việt Nam)
+    - cron: "0 0,12 * * *"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tu-dong-cap-nhat-ota
+  cancel-in-progress: false
+
+jobs:
+  dong-bo-va-phat-hanh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Kiểm tra an toàn kho đích (chỉ chạy trên chuhieu173/vgs-cleantv)
+        run: |
+          if [ "${GITHUB_REPOSITORY}" = "vgscity/vgs-cleantv" ]; then
+            echo "LỖI: Tuyệt đối không chạy hoặc đẩy lên vgscity/vgs-cleantv!" >&2
+            exit 1
+          fi
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cài đặt JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Cài đặt Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Đồng bộ code mới nhất từ vgscity/vgs-cleantv và Map Voice từ Circling5714/tivikit
+        id: sync
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BEFORE_MV=$(cat app/src/main/assets/mapvoice-commit.txt 2>/dev/null | tr -d '[:space:]' || true)
+          BEFORE_CODE=$(grep -E '^\s*versionCode = ' app/build.gradle.kts | grep -oE '[0-9]+')
+
+          # 1. Kiểm tra và hợp nhất commit mới từ vgscity/vgs-cleantv
+          git remote add upstream-vgs https://github.com/vgscity/vgs-cleantv.git 2>/dev/null || true
+          git fetch -q upstream-vgs main
+
+          UPSTREAM_UPDATED=0
+          if ! git merge-base --is-ancestor upstream-vgs/main HEAD; then
+            echo "Phát hiện commit mới từ vgscity/vgs-cleantv, đang hợp nhất..."
+            UPSTREAM_UPDATED=1
+            # Đặt lại các file có hook về bản gốc trước khi merge để không bao giờ xung đột
+            git checkout HEAD -- settings.gradle.kts \
+              app/src/main/java/zone/vgs/tvsach/CapNhat.kt \
+              app/src/main/java/zone/vgs/tvsach/adb/KetNoiAdb.kt \
+              app/src/main/java/zone/vgs/tvsach/adb/ThaoTacTv.kt \
+              app/src/main/java/zone/vgs/tvsach/dulieu/DuLieu.kt \
+              app/src/main/java/zone/vgs/tvsach/dulieu/KeHoach.kt \
+              app/src/main/java/zone/vgs/tvsach/dulieu/KichBanKhoiPhuc.kt \
+              app/src/main/java/zone/vgs/tvsach/ui/PhienLamViec.kt \
+              app/src/main/java/zone/vgs/tvsach/ui/UngDung.kt || true
+            git merge --no-edit -X theirs upstream-vgs/main
+          fi
+
+          # 2. Đồng bộ Map Voice từ Circling5714/tivikit
+          python3 scripts/dong-bo-mapvoice.py /tmp/tivikit
+          AFTER_MV=$(cat app/src/main/assets/mapvoice-commit.txt | tr -d '[:space:]')
+
+          MV_UPDATED=0
+          if [ "$BEFORE_MV" != "$AFTER_MV" ]; then
+            echo "Phát hiện Map Voice mới từ tivikit: ${BEFORE_MV:0:7} -> ${AFTER_MV:0:7}"
+            MV_UPDATED=1
+          fi
+
+          # Nếu Map Voice cập nhật hoặc có thay đổi mới mà versionCode chưa tăng so với bản đã release, tự tăng versionCode +1 để OTA nhận biết
+          AFTER_CODE=$(grep -E '^\s*versionCode = ' app/build.gradle.kts | grep -oE '[0-9]+')
+          if [ "$MV_UPDATED" = "1" ] && [ "$AFTER_CODE" -le "$BEFORE_CODE" ]; then
+            NEW_CODE=$((BEFORE_CODE + 1))
+            sed -i.bak -E "s/(versionCode = )[0-9]+/\1${NEW_CODE}/" app/build.gradle.kts && rm -f app/build.gradle.kts.bak
+          fi
+
+          # Kiểm tra xem bản hiện tại đã có Release trên GitHub chưa
+          CUR_NAME=$(grep -E '^\s*versionName = ' app/build.gradle.kts | grep -oE '"[^"]+"' | tr -d '"')
+          CUR_CODE=$(grep -E '^\s*versionCode = ' app/build.gradle.kts | grep -oE '[0-9]+')
+          TAG="v${CUR_NAME}-b${CUR_CODE}-${AFTER_MV:0:7}"
+
+          HAS_RELEASE=0
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            HAS_RELEASE=1
+          fi
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version_name=${CUR_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${CUR_CODE}" >> "$GITHUB_OUTPUT"
+          echo "mv_commit=${AFTER_MV:0:7}" >> "$GITHUB_OUTPUT"
+
+          if [ "$UPSTREAM_UPDATED" = "1" ] || [ "$MV_UPDATED" = "1" ] || [ "$HAS_RELEASE" = "0" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Chuẩn bị khoá ký APK (OTA đồng nhất chữ ký)
+        if: steps.sync.outputs.should_build == 'true'
+        run: |
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > signing/custom.jks
+            cat > ky.properties <<EOF
+          storeFile=signing/custom.jks
+          storePassword=${KEYSTORE_PASSWORD}
+          keyAlias=${KEY_ALIAS}
+          keyPassword=${KEY_PASSWORD}
+          EOF
+          else
+            cp signing/ky-ota.properties ky.properties
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Kiểm tra và dựng SonyKeepAlive.apk cùng CleanTV.apk
+        if: steps.sync.outputs.should_build == 'true'
+        run: |
+          set -euo pipefail
+          ./gradlew :mapvoice:testReleaseUnitTest :keepalive:assembleRelease --console=plain
+          cp keepalive/build/outputs/apk/release/keepalive-release.apk SonyKeepAlive.apk
+          ./gradlew :app:testReleaseUnitTest :app:assembleRelease --console=plain
+
+      - name: Commit và push thay đổi lên chuhieu173/vgs-cleantv (nếu có code mới)
+        if: steps.sync.outputs.should_build == 'true'
+        run: |
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Tự động đồng bộ CleanTV ${{ steps.sync.outputs.version_name }} + Map Voice (${{ steps.sync.outputs.mv_commit }}) [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Tạo gói OTA và phát hành GitHub Release
+        if: steps.sync.outputs.should_build == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 scripts/tao-ota-github.py
+          TAG="${{ steps.sync.outputs.tag }}"
+          TITLE="CleanTV ${{ steps.sync.outputs.version_name }} (build ${{ steps.sync.outputs.version_code }} · Map Voice ${{ steps.sync.outputs.mv_commit }})"
+          NOTES="### Bản dựng tự động CleanTV + Map Voice + SonyKeepAlive
+          - **CleanTV gốc (\`vgscity/vgs-cleantv\`)**: \`${{ steps.sync.outputs.version_name }}\` (\`versionCode=${{ steps.sync.outputs.version_code }}\`)
+          - **Map Voice (\`Circling5714/tivikit\`)**: commit \`${{ steps.sync.outputs.mv_commit }}\`
+          - **Hỗ trợ cập nhật trực tiếp qua OTA** trong app CleanTV (tự động tải \`cap-nhat.json\`, \`du-lieu.json\`, \`tvhome.apk\`, \`mapvoice.apk\` và APK bản mới)."
+
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber --repo "${GITHUB_REPOSITORY}"
+          else
+            gh release create "$TAG" dist/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "$TITLE" \
+              --notes "$NOTES" \
+              --latest
+          fi

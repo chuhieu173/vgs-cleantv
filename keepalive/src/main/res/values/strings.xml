@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Chặn tự khởi động lại Sony (KeepAlive)</string>
+    <string name="service_desc">Giữ WakeLock nhẹ (SonyKeepAlive:Keep) để ngăn HealthKeepService của TV Sony tự khởi động lại ngầm (watchdog2) lúc chờ gây tiếng nổ loa ngoài. Tắt công tắc này để khôi phục hành vi mặc định của Sony.</string>
+</resources>

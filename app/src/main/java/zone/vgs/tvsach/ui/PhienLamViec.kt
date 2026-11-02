@@ -39,7 +39,7 @@ import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.Socket
 
-enum class Man { CHINH, KET_NOI, THONG_TIN, CHON_GOI, DANG_TAT, HOME_SACH, XONG, KHOI_PHUC, HUONG_DAN, GIAY_PHEP, KHOA_TRE, REMOTE }
+enum class Man { CHINH, KET_NOI, THONG_TIN, CHON_GOI, DANG_TAT, HOME_SACH, XONG, KHOI_PHUC, HUONG_DAN, GIAY_PHEP, KHOA_TRE, REMOTE, MAP_VOICE }
 
 /** Số app tối đa trong dock: bằng số cột lớn nhất của Home sạch (columns 1–8); dock dài hơn số cột thì tràn xuống hàng sau (22/10/2026, góp ý muốn hàng đầu nhiều app hơn). */
 const val DOCK_TOI_DA = 8
@@ -84,11 +84,13 @@ private val PHIM_TAT_SAN = setOf("tcl-g09-google-tv")
 private val TRINH_DUYET_TV = listOf("com.android.chrome", "com.tcl.browser", "com.phlox.tvwebbrowser", "com.cloudmosa.puffinTV", "org.mozilla.tv.firefox")
 
 class PhienLamViec(app: Application) : AndroidViewModel(app) {
-    private val ctx: Context get() = getApplication()
+    internal val ctx: Context get() = getApplication()
     private val adb by lazy { KetNoiAdb.lay(ctx) }
     val kho by lazy { KhoSaoLuu(ctx) }
-    private val tv by lazy { ThaoTacTv(adb, kho) }
+    internal val tv by lazy { ThaoTacTv(adb, kho) }
     private val prefs by lazy { ctx.getSharedPreferences("tvsach", Context.MODE_PRIVATE) }
+    val mapVoice by lazy { MapVoiceTivi(this) }
+    fun moMapVoice() = mapVoice.mo()
 
     var man by mutableStateOf(Man.CHINH)
     /** Màn để quay về sau khi xem Hướng dẫn / Giấy phép. */
@@ -133,7 +135,7 @@ class PhienLamViec(app: Application) : AndroidViewModel(app) {
     var khongPhaiTivi by mutableStateOf(false)
     var xacNhanLaTivi by mutableStateOf(false)
     val chanKhongPhaiTivi get() = khongPhaiTivi && !xacNhanLaTivi
-    private var getprop = ""
+    internal var getprop = ""
     var trangThai by mutableStateOf<TrangThaiGoi?>(null)
     var ungVien by mutableStateOf<List<Pair<MauTv, Int>>>(emptyList())
     /** Mẫu cùng hãng tên máy gần giống (DuLieu.ganGiong): chỉ gợi ý, không tự chọn. */
@@ -549,7 +551,7 @@ class PhienLamViec(app: Application) : AndroidViewModel(app) {
 
     fun taiLaiSaoLuu() { dsSaoLuu = kho.tatCa() }
 
-    private fun chay(viec: String, khoi: suspend () -> Unit) {
+    internal fun chay(viec: String, khoi: suspend () -> Unit) {
         if (dangBan) return
         dangBan = true; loi = ""; canDonBoNho = false; thongBao = viec
         viewModelScope.launch {
@@ -587,7 +589,7 @@ class PhienLamViec(app: Application) : AndroidViewModel(app) {
             ?: t("Lỗi kết nối (${e.javaClass.simpleName}). Kiểm tra IP, cổng và tivi còn bật.", "Connection error (${e.javaClass.simpleName}). Check the IP, port and that the TV is on.")
     }
 
-    private suspend fun <T> io(khoi: () -> T): T = withContext(Dispatchers.IO) { khoi() }
+    internal suspend fun <T> io(khoi: () -> T): T = withContext(Dispatchers.IO) { khoi() }
 
     // ---------- Kết nối ----------
 
@@ -1688,6 +1690,7 @@ class PhienLamViec(app: Application) : AndroidViewModel(app) {
         laMayChieu = false; mayChieu = null; ghimMayChieu.clear()
         nhatKy.clear(); saoLuu = null; saoLuuTuTv = false; goiTatKhongSaoLuu = null; epSetupwraith = false
         dsTatTv = null; chonBatLai.clear(); batLaiBao = ""
+        mapVoice.quen()
         taiLaiSaoLuu()
     }
 

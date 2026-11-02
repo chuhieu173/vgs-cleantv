@@ -1170,6 +1170,7 @@ class ThaoTacTv(private val adb: KetNoiAdb, private val kho: KhoSaoLuu) {
             sh("settings put global private_dns_mode opportunistic; settings delete global private_dns_specifier")
         }
         if (khoaDaCai()) { bao(t("Gỡ Khoá trẻ em…", "Removing the Kids lock…")); runCatching { tatKhoa(go = true) } }
+        if (mapVoiceDaCai()) { bao(t("Gỡ Map Voice…", "Removing Map Voice…")); runCatching { goMapVoice() } }
         if (goLauncher) HOME_SACH.forEach { p ->
             if (sh("pm path $p").isNotBlank()) { bao(t("Gỡ Home sạch ($p)…", "Removing the clean Home ($p)…")); sh("pm uninstall $p") }
         }
@@ -1228,6 +1229,7 @@ class ThaoTacTv(private val adb: KetNoiAdb, private val kho: KhoSaoLuu) {
             sl.dnsDaDoi = false; luuSaoLuu(sl)
         }
         if (khoaDaCai()) { bao(t("Gỡ Khoá trẻ em…", "Removing the Kids lock…")); runCatching { tatKhoa(go = true) } }
+        if (mapVoiceDaCai()) { bao(t("Gỡ Map Voice…", "Removing Map Voice…")); runCatching { goMapVoice() } }
         return loi
     }
 
@@ -1276,6 +1278,61 @@ class ThaoTacTv(private val adb: KetNoiAdb, private val kho: KhoSaoLuu) {
             if (con.isBlank()) sh("settings delete secure enabled_accessibility_services") else sh("settings put secure enabled_accessibility_services '$con'")
         }
         if (go) sh("pm uninstall $PKG_KHOA")
+    }
+
+
+    // ---------- Map Voice (đồng bộ từ Circling5714/tivikit) ----------
+
+    fun mapVoiceDaCai(): Boolean = sh("pm path ${zone.vgs.tvsach.dulieu.MapVoice.GOI} 2>/dev/null").contains("package:")
+
+    fun docMapVoice(): org.json.JSONObject? {
+        if (!mapVoiceDaCai()) return null
+        val out = sh("content call --uri content://${zone.vgs.tvsach.dulieu.MapVoice.GOI} --method doc 2>/dev/null")
+        val a = out.indexOf("json="); val b = out.lastIndexOf("}]")
+        return if (a < 0 || b <= a) null else runCatching { org.json.JSONObject(out.substring(a + 5, b)) }.getOrNull()
+    }
+
+    fun goiDangBat(): Set<String> = sh("pm list packages -e").lines().mapNotNull { l ->
+        l.trim().removePrefix("package:").takeIf { TEN_GOI.matches(it) }
+    }.toSet()
+
+    fun goiDangTat(pkg: String): Boolean = sh("pm list packages -d").lines().any { it.trim() == "package:$pkg" }
+
+    fun caiMapVoice(apk: ByteArray, cauHinh: zone.vgs.tvsach.dulieu.MapVoice.CauHinh, kenh: String, bao: (String) -> Unit) {
+        bao(t("Cài app Map Voice lên tivi…", "Installing Map Voice on the TV…"))
+        adb.ghiFile("/data/local/tmp/mapvoice.apk", apk)
+        val out = sh("pm install -r /data/local/tmp/mapvoice.apk; rm -f /data/local/tmp/mapvoice.apk")
+        if (!out.contains("Success")) error(t("Cài không được: ${out.trim().lines().lastOrNull()}", "Install failed: ${out.trim().lines().lastOrNull()}"))
+        sh("cmd appops set ${zone.vgs.tvsach.dulieu.MapVoice.GOI} AUTO_START allow 2>/dev/null; cmd appops set ${zone.vgs.tvsach.dulieu.MapVoice.GOI} TURN_SCREEN_ON allow 2>/dev/null; true")
+        bao(t("Gửi cài đặt…", "Sending the settings…"))
+        if (!datMapVoice(cauHinh)) error(t("Tivi không nhận cài đặt của Map Voice.", "The TV rejected the Map Voice settings."))
+        if (kenh.isNotEmpty()) guiKenhMapVoice(kenh)
+        bao(t("Bật dịch vụ Map Voice…", "Turning the Map Voice service on…"))
+        val dv = zone.vgs.tvsach.dulieu.MapVoice.DICH_VU
+        sh("s=\$(settings get secure enabled_accessibility_services); case \"\$s\" in *$dv*) ;; null|'') settings put secure enabled_accessibility_services $dv ;; *) settings put secure enabled_accessibility_services \"\$s:$dv\" ;; esac; settings put secure accessibility_enabled 1")
+    }
+
+    fun datMapVoice(c: zone.vgs.tvsach.dulieu.MapVoice.CauHinh): Boolean = sh(zone.vgs.tvsach.dulieu.MapVoice.lenhDat(c)).contains("ok=1")
+
+    fun guiKenhMapVoice(json: String): Boolean = sh(zone.vgs.tvsach.dulieu.MapVoice.lenhKenh(json)).contains("ok=1")
+
+    fun xemMapVoice(cau: String): Pair<zone.vgs.tvsach.dulieu.MapVoice.Viec?, String> =
+        sh(zone.vgs.tvsach.dulieu.MapVoice.lenhXem(cau)).let { zone.vgs.tvsach.dulieu.MapVoice.viecTrong(it) to zone.vgs.tvsach.dulieu.MapVoice.loiTrong(it) }
+
+    fun thuMapVoice(cau: String): Pair<zone.vgs.tvsach.dulieu.MapVoice.Viec?, String> =
+        sh(zone.vgs.tvsach.dulieu.MapVoice.lenhThu(cau)).let { zone.vgs.tvsach.dulieu.MapVoice.viecTrong(it) to zone.vgs.tvsach.dulieu.MapVoice.loiTrong(it) }
+
+    fun noiLaiMapVoice(): Boolean = sh(zone.vgs.tvsach.dulieu.MapVoice.LENH_NOI_LAI).contains("ok=1")
+
+    fun goMapVoice() {
+        if (!mapVoiceDaCai()) return
+        val dv = zone.vgs.tvsach.dulieu.MapVoice.DICH_VU
+        val tc = sh("settings get secure enabled_accessibility_services").trim()
+        if (tc.contains(dv)) {
+            val con = tc.split(':').filter { it.isNotBlank() && it != dv && it != "null" }.joinToString(":")
+            if (con.isBlank()) sh("settings delete secure enabled_accessibility_services") else sh("settings put secure enabled_accessibility_services '$con'")
+        }
+        sh("pm uninstall ${zone.vgs.tvsach.dulieu.MapVoice.GOI}")
     }
 
     // ---------- Đóng ADB ----------

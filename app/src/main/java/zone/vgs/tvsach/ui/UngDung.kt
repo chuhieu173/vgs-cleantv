@@ -80,12 +80,12 @@ import java.util.Locale
 
 private val Tim = Color(0xFF7C3AED)
 private val Hong = Color(0xFFEC4899)
-private val Xanh = Color(0xFF22C55E)
-private val Cam = Color(0xFFF59E0B)
+internal val Xanh = Color(0xFF22C55E)
+internal val Cam = Color(0xFFF59E0B)
 private val Nen = Color(0xFF0B0B10)
-private val The1 = Color(0xFF15151C)
-private val The2 = Color(0xFF1E1E28)
-private val ChuPhu = Color(0xFFA1A1B5)
+internal val The1 = Color(0xFF15151C)
+internal val The2 = Color(0xFF1E1E28)
+internal val ChuPhu = Color(0xFFA1A1B5)
 private val Vien = Color(0xFF2A2A36)
 private val Gradient = Brush.linearGradient(listOf(Tim, Hong))
 private val NenXam = Brush.linearGradient(listOf(The2, The2))
@@ -138,6 +138,7 @@ fun UngDung(vm: PhienLamViec = viewModel()) {
                         Man.GIAY_PHEP -> ManGiayPhep()
                         Man.KHOA_TRE -> ManKhoaTre(vm)
                         Man.REMOTE -> ManRemote(vm)
+                        Man.MAP_VOICE -> ManMapVoice(vm)
                     }
                 }
                 if (vm.loi.isNotEmpty() || (vm.dangBan && vm.man != Man.DANG_TAT)) ThanhTrangThai(vm)
@@ -223,7 +224,7 @@ private fun quayLai(vm: PhienLamViec) {
         Man.HOME_SACH -> if (vm.moNangCao) { vm.moNangCao = false; Man.HOME_SACH } else vm.manTruocHome
         Man.XONG -> Man.HOME_SACH
         Man.HUONG_DAN, Man.GIAY_PHEP -> vm.manTruoc
-        Man.KHOA_TRE, Man.REMOTE -> Man.THONG_TIN
+        Man.KHOA_TRE, Man.REMOTE, Man.MAP_VOICE -> Man.THONG_TIN
         Man.CHINH -> Man.CHINH
     }
 }
@@ -293,13 +294,13 @@ private fun ThanhTrangThai(vm: PhienLamViec) {
 // ---------------- Mảnh dùng chung ----------------
 
 @Composable
-private fun Cuon(noiDung: @Composable ColumnScope.() -> Unit) {
+internal fun Cuon(noiDung: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp), content = noiDung)
 }
 
 @Composable
-private fun The(tieuDe: String? = null, icon: ImageVector? = null, noiDung: @Composable ColumnScope.() -> Unit) {
+internal fun The(tieuDe: String? = null, icon: ImageVector? = null, noiDung: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(The1).border(1.dp, Vien, RoundedCornerShape(20.dp)).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (tieuDe != null) Row(verticalAlignment = Alignment.CenterVertically) {
@@ -311,7 +312,7 @@ private fun The(tieuDe: String? = null, icon: ImageVector? = null, noiDung: @Com
 }
 
 @Composable
-private fun NutChinh(chu: String, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null, onClick: () -> Unit) {
+internal fun NutChinh(chu: String, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null, onClick: () -> Unit) {
     val mo = if (enabled) 1f else 0.4f
     Box(modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(16.dp)).background(Gradient, alpha = mo)
         .clickable(enabled = enabled, onClick = onClick), contentAlignment = Alignment.Center) {
@@ -323,7 +324,7 @@ private fun NutChinh(chu: String, modifier: Modifier = Modifier, enabled: Boolea
 }
 
 @Composable
-private fun NutPhu(chu: String, icon: ImageVector? = null, enabled: Boolean = true, onClick: () -> Unit) {
+internal fun NutPhu(chu: String, icon: ImageVector? = null, enabled: Boolean = true, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth().height(50.dp),
         shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Vien)) {
         if (icon != null) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
@@ -332,7 +333,7 @@ private fun NutPhu(chu: String, icon: ImageVector? = null, enabled: Boolean = tr
 }
 
 @Composable
-private fun Phu(chu: String, mau: Color = ChuPhu) = Text(chu, fontSize = 13.sp, color = mau, lineHeight = 19.sp)
+internal fun Phu(chu: String, mau: Color = ChuPhu) = Text(chu, fontSize = 13.sp, color = mau, lineHeight = 19.sp)
 
 /**
  * Ô nhập chữ khi chạy trên tivi (góp ý ngocnd156 29/10/2026): TextField nuốt phím lên/xuống của remote nên đóng
@@ -366,7 +367,7 @@ private fun Chip(chu: String, mau: Color = ChuPhu) {
 
 /** Mục gập/mở. */
 @Composable
-private fun Gap(tieuDe: String, icon: ImageVector, moSan: Boolean = false, noiDung: @Composable ColumnScope.() -> Unit) {
+internal fun Gap(tieuDe: String, icon: ImageVector, moSan: Boolean = false, noiDung: @Composable ColumnScope.() -> Unit) {
     var mo by rememberSaveable(icon.name) { mutableStateOf(moSan) }
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(The1).border(1.dp, Vien, RoundedCornerShape(20.dp))) {
         Row(Modifier.fillMaxWidth().clickable { mo = !mo }.padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -768,6 +769,7 @@ private fun ManThongTin(vm: PhienLamViec) = Cuon {
     NutPhu(t("Xem màn hình tivi", "View TV screen"), Icons.Rounded.Screenshot) { vm.chupManHinh() }
     if (zone.vgs.tvsach.ManHinh.laTv) NutPhu(t("Hẹn giờ tắt & app trên tivi", "Sleep timer & apps on the TV"), Icons.Rounded.Apps) { vm.moRemote() }
     else NutPhu(t("Remote trên điện thoại", "Phone remote"), Icons.Rounded.SettingsRemote) { vm.moRemote() }
+    NutPhu(t("Map Voice (giọng nói mở SmartTube / TizenTube)", "Map Voice (voice opens SmartTube / TizenTube)"), Icons.Rounded.Mic) { vm.moMapVoice() }
     if (vm.daCoHomeSach) NutPhu(t("Đổi giao diện Home sạch", "Change the clean Home theme"), Icons.Rounded.Palette) { vm.moDoiTheme() }
     NutPhu(t("Khoá trẻ em (hẹn giờ + mã PIN)", "Kids lock (schedule + PIN)"), Icons.Rounded.Lock) { vm.moKhoaTre() }
     if (vm.saoLuu != null) NutPhu(t("Khôi phục tivi này", "Restore this TV"), Icons.Rounded.Restore) { vm.man = Man.KHOI_PHUC }
@@ -779,7 +781,7 @@ private fun ManThongTin(vm: PhienLamViec) = Cuon {
 }
 
 @Composable
-private fun LuaChon(chon: Boolean, chu: String, phu: String?, onClick: () -> Unit) {
+internal fun LuaChon(chon: Boolean, chu: String, phu: String?, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (chon) Tim.copy(alpha = 0.18f) else The2)
         .border(1.dp, if (chon) Tim else Color.Transparent, RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically) {
@@ -1460,7 +1462,7 @@ private fun DongNangCao(tc: zone.vgs.tvsach.dulieu.TuyChon, gt: String, doi: (St
 }
 
 @Composable
-private fun ChonChip(chu: String, chon: Boolean, onClick: () -> Unit) {
+internal fun ChonChip(chu: String, chon: Boolean, onClick: () -> Unit) {
     Text(chu, fontSize = 13.sp, fontWeight = if (chon) FontWeight.SemiBold else FontWeight.Normal,
         modifier = Modifier.clip(RoundedCornerShape(50)).background(if (chon) Tim.copy(alpha = 0.3f) else The2)
             .border(1.dp, if (chon) Tim else Vien, RoundedCornerShape(50)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp))
@@ -1492,7 +1494,7 @@ private fun TheTheme(th: Theme, chon: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Hang(chu: String, phu: String, bat: Boolean, doi: (Boolean) -> Unit) {
+internal fun Hang(chu: String, phu: String, bat: Boolean, doi: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().clickable { doi(!bat) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) { Text(chu, fontSize = 14.sp); Phu(phu) }
         Switch(bat, doi, colors = SwitchDefaults.colors(checkedTrackColor = Tim))
@@ -1535,6 +1537,7 @@ private fun ManXong(vm: PhienLamViec) = Cuon {
             NutPhu(t("Giữ ADB để chỉnh tiếp", "Keep ADB on to tweak later"), Icons.Rounded.LockOpen) { vm.chonGiuAdb() }
             // Remote trên điện thoại đi qua ADB: chọn nó là giữ ADB.
             if (!zone.vgs.tvsach.ManHinh.laTv) NutPhu(t("Giữ ADB và dùng remote trên điện thoại", "Keep ADB and use the phone remote"), Icons.Rounded.SettingsRemote) { vm.chonGiuAdb { vm.moRemote() } }
+            NutPhu(t("Giữ ADB và bật Map Voice (SmartTube / TizenTube)", "Keep ADB and turn on Map Voice"), Icons.Rounded.Mic) { vm.chonGiuAdb { vm.moMapVoice() } }
             val phut = vm.phutTuTatAdb
             Phu(t("Chưa chọn mà rời app quá $phut phút thì tivi tự tắt ADB.", if (phut == 1) "Leave the app for over a minute without choosing and the TV turns ADB off itself." else "Leave the app for over $phut minutes without choosing and the TV turns ADB off itself."))
         }

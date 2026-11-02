@@ -29,6 +29,21 @@ class KetNoiAdb private constructor(
 
     init {
         setTimeout(20, TimeUnit.SECONDS)
+        setApi(34)
+    }
+
+    override fun openStream(destination: String): io.github.muntashirakon.adb.AdbStream {
+        val f = MO_LUONG.submit(java.util.concurrent.Callable { super.openStream(destination) })
+        return try {
+            f.get(MO_TOI_DA_GIAY, TimeUnit.SECONDS)
+        } catch (e: java.util.concurrent.TimeoutException) {
+            f.cancel(true)
+            throw java.io.IOException("Tivi không trả lời sau $MO_TOI_DA_GIAY giây (mở lệnh)")
+        } catch (e: InterruptedException) {
+            f.cancel(true); throw e
+        } catch (e: java.util.concurrent.ExecutionException) {
+            throw e.cause ?: e
+        }
     }
 
     override fun getPrivateKey(): PrivateKey = khoa
@@ -158,6 +173,11 @@ class KetNoiAdb private constructor(
     }
 
     companion object {
+        private val MO_LUONG = java.util.concurrent.Executors.newCachedThreadPool { r ->
+            Thread(r, "adb-mo").apply { isDaemon = true }
+        }
+        private const val MO_TOI_DA_GIAY = 20L
+
         @Volatile private var hienTai: KetNoiAdb? = null
 
         fun lay(context: Context): KetNoiAdb = hienTai ?: synchronized(this) {
