@@ -136,7 +136,8 @@ jobs:
         if: steps.sync.outputs.should_build == 'true'
         run: |
           set -euo pipefail
-          ./gradlew :mapvoice:testReleaseUnitTest :keepalive:assembleRelease --console=plain
+          ./gradlew :mapvoice:testReleaseUnitTest --console=plain
+          (cd keepalive && ./../gradlew assembleRelease --console=plain)
           cp keepalive/build/outputs/apk/release/keepalive-release.apk SonyKeepAlive.apk
           ./gradlew :app:testReleaseUnitTest :app:assembleRelease --console=plain
 
