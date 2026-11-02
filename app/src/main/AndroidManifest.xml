@@ -18,7 +18,7 @@
     <application
         android:usesCleartextTraffic="true"
         android:banner="@drawable/banner_tv"
-        android:label="CleanTV"
+        android:label="CleanTV+"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.TvSach"
