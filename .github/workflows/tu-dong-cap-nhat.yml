@@ -104,7 +104,7 @@ jobs:
           echo "version_code=${CUR_CODE}" >> "$GITHUB_OUTPUT"
           echo "mv_commit=${AFTER_MV:0:7}" >> "$GITHUB_OUTPUT"
 
-          if [ "$UPSTREAM_UPDATED" = "1" ] || [ "$MV_UPDATED" = "1" ] || [ "$HAS_RELEASE" = "0" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$UPSTREAM_UPDATED" = "1" ] || [ "$MV_UPDATED" = "1" ] || [ "$HAS_RELEASE" = "0" ] || [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_build=false" >> "$GITHUB_OUTPUT"
