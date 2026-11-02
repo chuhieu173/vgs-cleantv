@@ -41,9 +41,6 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Cài đặt Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Đồng bộ code mới nhất từ vgscity/vgs-cleantv và Map Voice từ Circling5714/tivikit
         id: sync
         run: |
