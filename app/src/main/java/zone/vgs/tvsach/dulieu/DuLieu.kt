@@ -185,6 +185,13 @@ val TEN_APP = mapOf(
     "com.google.android.apps.tv.launcherx" to "Màn hình Home gốc (Google TV)",
     "com.gathin.tvhome" to "Home sạch (CleanYourTV)",
     "com.ts.launcher" to "Home sạch (bản cho Xiaomi)",
+    "org.smarttube.stable" to "SmartTube",
+    "org.smarttube.beta" to "SmartTube Beta",
+    "com.liskovsoft.smarttubetv" to "SmartTube",
+    "com.liskovsoft.smarttubetv.beta" to "SmartTube Beta",
+    "io.gh.reisxd.tizentube.cobalt" to "TizenTube",
+    "vn.tivikit.mapvoice" to "Map Voice",
+    "zone.vgs.cleantv.keepalive" to "Sony KeepAlive",
     "com.android.tv.settings" to "Cài đặt tivi",
     "org.videolan.vlc" to "VLC",
 )
