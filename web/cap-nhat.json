@@ -1,25 +1,25 @@
 {
  "app": {
-  "versionCode": 112,
-  "versionName": "4.0.2",
-  "apk": "https://cleantv-dem.vgszone.workers.dev/apk/CleanTV-4.0.2.apk",
-  "co": 12485749,
-  "ghiChu": "Bật tivi vào thẳng kênh, sửa ô kênh TV360 (Back về TV360 dùng được), hết bộ nhớ thì xem app chiếm chỗ và gỡ bản cập nhật ngay trong app, tự lưu kịch bản khôi phục vào tivi.",
-  "ghiChuEn": "Power on straight into a channel, fixed TV360 channel tiles (Back to TV360 works), see which apps fill the storage and uninstall updates in the app, restore script saved on the TV.",
-  "ngay": "2026-11-02"
+  "versionCode": 124,
+  "versionName": "4.1.4",
+  "apk": "https://cleantv-dem.vgszone.workers.dev/apk/CleanTV-4.1.4.apk",
+  "co": 12595741,
+  "ghiChu": "Khoá trẻ em có thêm khoá từng app: chọn app (cả Cài đặt tivi), mở là tivi hỏi mã PIN. Màn khoá nhập PIN được trên mọi tivi. Bật lại được lời chào khi dùng giao diện Kiểu Apple TV / macOS. Báo lỗi ghi thêm phần nút remote đã gán.",
+  "ghiChuEn": "Kids lock can now lock single apps (TV Settings too): opening one asks for the PIN. The lock screen takes the PIN on every TV. The greeting can be turned back on with the Apple TV / macOS styles. Bug reports now include remote-button mappings.",
+  "ngay": "2026-11-15"
  },
  "duLieu": {
   "du-lieu.json": {
-   "phienBan": "9e77190f3f50afd6",
+   "phienBan": "27451d3ceb4626ed",
    "url": "/ota/du-lieu.json",
-   "co": 2458766,
-   "tuBan": 112
+   "co": 2827757,
+   "tuBan": 124
   },
   "tvhome.apk": {
-   "phienBan": "57566ff00e721746",
+   "phienBan": "24e0afa3c0589740",
    "url": "/ota/tvhome.apk",
-   "co": 707533,
-   "tuBan": 112
+   "co": 708501,
+   "tuBan": 124
   }
  }
 }
